@@ -1,0 +1,7 @@
+
+node_modules
+salidas
+.DS_Store
+*.log
+*.zip
+*.pdf

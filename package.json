@@ -1,0 +1,18 @@
+{
+  "name": "polizas-certificates-node",
+  "version": "1.0.0",
+  "description": "Extractor ESM de certificados 'SEGURO DE AUTOMOTORES / CERTIFICADO DE COBERTURA' con organizaci\u00f3n en carpetas y JSON de metadatos.",
+  "type": "module",
+  "main": "src/extract_certificates.js",
+  "scripts": {
+    "start": "node src/extract_certificates.js ./51600273376.pdf --out ./salidas"
+  },
+  "dependencies": {
+    "fs-extra": "11.3.2",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "5.4.296"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
