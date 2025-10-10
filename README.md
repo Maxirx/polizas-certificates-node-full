@@ -5,7 +5,7 @@ Extractor en **Node.js (ESM)** para individualizar documentos **"SEGURO DE AUTOM
 Permite:
 - Filtrar por **patente** (o procesar **todas**).
 - Recortar **todas las páginas** del certificado (detecta **"N de M"**).
-- Organizar salida como **`Tomador / tipo + año de fabricacion / patente`**.
+- Organizar salida como **`Tomador / Marca / tipo + año de fabricacion / patente`**.
 - Guardar `poliza_<PATENTE>.pdf` y `poliza_<PATENTE>.json` con: tomador, tipo, año, marca, patente, vigencia (desde/hasta en formato original + ISO), **n° póliza** (y **sin guiones**), motor y chasis.
 
 > Compatible con **pdfjs-dist 5.4.296** usando la **build legacy** para Node (evita el error `DOMMatrix is not defined`).  
@@ -52,7 +52,7 @@ salidas/
   2) Si encuentra `N de M` (p.ej. `1 de 3` y `M ≤ 20`), usa ese total. (SOLO HASTA 20 PAGINAS)
   3) Fallback: agrupa páginas contiguas con el mismo encabezado (máx. 10).
 
-## OCR (si el PDF es escaneado) NO DISPONIBLE ACTUALMENTE
+## OCR (si el PDF es escaneado -NO DISPONIBLE ACTUALMENTE-)
 ```bash
 pip install ocrmypdf
 ocrmypdf entrada.pdf salida_ocr.pdf
