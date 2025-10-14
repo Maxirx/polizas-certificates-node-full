@@ -5,3 +5,4 @@ salidas
 *.log
 *.zip
 *.pdf
+test_edge_cases.js
