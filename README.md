@@ -3,9 +3,9 @@
 
 Herramienta automatizada para extraer certificados individuales de pólizas de seguro vehicular desde archivos PDF consolidados, organizándolos en una estructura jerárquica de carpetas con metadata en JSON.
 
-![JS Version](https://img.shields.io/badge/JS-ES21+-blue)
-![License](https://img.shields.io/badge/license-MIT-green)
-![Status](https://img.shields.io/badge/status-beta-yellow)
+![Node.js](https://img.shields.io/badge/node-%3E%3D16.x-brightgreen)
+![License](https://img.shields.io/badge/license-MIT-blue)
+![Version](https://img.shields.io/badge/version-1.0-orange)
 
 
 ## 📋 Descripción
