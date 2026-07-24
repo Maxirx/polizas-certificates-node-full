@@ -5,7 +5,7 @@
   "type": "module",
   "main": "src/extract_certificates.js",
   "scripts": {
-    "start": "node src/extract_certificates.js ./51600273376.pdf --out ./salidas"
+    "start": "node src/extract_certificates.js ./22052026AutoluxSubrog.pdf --out ./salidas"
   },
   "dependencies": {
     "fs-extra": "11.3.2",

@@ -1,15 +1,14 @@
-// Extractor de certificados "SEGURO DE AUTOMOTORES / CERTIFICADO DE COBERTURA"
-// Versión v3 (2025-10) — con extracción precisa y estructura de carpetas extendida
+﻿// Extractor de certificados "SEGURO DE AUTOMOTORES / CERTIFICADO DE COBERTURA"
+// VersiÃ³n v3 (2025-10) â€” con extracciÃ³n precisa y estructura de carpetas extendida
 // Uso: node src/extract_certificates_v3.js <archivo.pdf> [--out ./salidas] [--plate=AG552FA]
 
 import path from "node:path";
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
-import { PDFDocument } from "pdf-lib";
+import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
 import fsExtra from "fs-extra";
 import { promises as fs } from "node:fs";
-import { log } from "node:console";
 
 const args = process.argv.slice(2);
 if (args.length < 1) {
@@ -37,7 +36,7 @@ const toISO = (ddmmyyyy) => {
 const normalizePlate = (s) => (s || "").toUpperCase().replace(/[^A-Z0-9]+/g, "");
 const plateFlexRegExp = (plate) => {
     const P = normalizePlate(plate);
-    if (!/^[A-Z]{2}\d{3}[A-Z]{2}$/.test(P)) return new RegExp(plate, "i"); // fallback genérico
+    if (!/^[A-Z]{2}\d{3}[A-Z]{2}$/.test(P)) return new RegExp(plate, "i"); // fallback genÃ©rico
     const A = P.slice(0, 2), N = P.slice(2, 5), B = P.slice(5, 7);
     return new RegExp(`${A[0]}\\s*${A[1]}\\s*${N[0]}\\s*${N[1]}\\s*${N[2]}\\s*${B[0]}\\s*${B[1]}`, "i");
 };
@@ -55,7 +54,7 @@ async function findPdfFiles(inputPath) {
             .filter(file => file.toLowerCase().endsWith('.pdf'))
             .map(file => path.join(inputPath, file));
     } else {
-        throw new Error(`La ruta ${inputPath} no es un archivo ni carpeta válida`);
+        throw new Error(`La ruta ${inputPath} no es un archivo ni carpeta vÃ¡lida`);
     }
 }
 
@@ -84,7 +83,7 @@ async function getAllPagesText(bufferOrUint8) {
 }
 
 // =====================
-// DETECCIÓN DE BLOQUES
+// DETECCIÃ“N DE BLOQUES
 // =====================
 function findCertificateBlocks(pagesText) {
     const blocks = [];
@@ -121,11 +120,11 @@ function findCertificateBlocks(pagesText) {
 }
 
 // =====================
-// NUEVA EXTRACCIÓN DE CAMPOS (v3)
+// NUEVA EXTRACCIÃ“N DE CAMPOS (v3)
 // =====================
 function extractFieldsFromText(txt, plateHint) {
-    // 🔧 Preprocesado mejorado
-    txt = txt.replace(/(TOMADOR|POLIZA|P[ÓO]LIZA|MARCA|TIPO|AÑO|PATENTE|MOTOR|CHASIS|VIGENCIA|DESDE|HASTA)/gi, "\n$1");
+    // ðŸ”§ Preprocesado mejorado
+    txt = txt.replace(/(TOMADOR|POLIZA|P[Ã“O]LIZA|MARCA|TIPO|AÃ‘O|PATENTE|MOTOR|CHASIS|VIGENCIA|DESDE|HASTA)/gi, "\n$1");
 
     const out = {
         tomador: null, marca: null, tipo: null, anio: null, patente: null,
@@ -136,23 +135,23 @@ function extractFieldsFromText(txt, plateHint) {
     };
     let m;
 
-    // 🧍 Tomador - VERSIÓN CORREGIDA
-    // Busca después de "hasta" + fecha, capturando solo el nombre antes de RUTA
-    if ((m = txt.match(/hasta\s+(?:\d+\s*hs?\.\s*del\s+)?[0-3]?\d[\-\/][01]?\d[\-\/]\d{4}\s+([A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ0-9 .,&\-\/]{2,60}?)\s+(?:S.A.|RUTA|DOMICILIO|CUIT|CT\s)/i))) {
-        console.log("✅ Tomador detectado vía 'hasta <fecha> <nombre> RUTA'");
+    // ðŸ§ Tomador - VERSIÃ“N CORREGIDA
+    // Busca despuÃ©s de "hasta" + fecha, capturando solo el nombre antes de RUTA
+    if ((m = txt.match(/hasta\s+(?:\d+\s*hs?\.\s*del\s+)?[0-3]?\d[\-\/][01]?\d[\-\/]\d{4}\s+([A-ZÃÃ‰ÃÃ“ÃšÃœÃ‘][A-ZÃÃ‰ÃÃ“ÃšÃœÃ‘0-9 .,&\-\/]{2,60}?)\s+(?:RUTA|DOMICILIO|CUIT|CT\s)/i))) {
+        console.log("âœ… Tomador detectado vÃ­a 'hasta <fecha> <nombre> RUTA'");
         console.log("   Cadena capturada:", m[1]);
         out.tomador = norm(m[1]);
 
     }
     // Fallback: busca texto que termina en SRL/SA/S.A. antes de RUTA
-    else if ((m = txt.match(/\d{4}\s+([A-ZÁÉÍÓÚÜÑ][A-ZÁÉÍÓÚÜÑ0-9 .,&\-\/]{2,60}?\s+(?:SRL|S\.?R\.?L\.?|SA|S\.?A\.?))\s+RUTA/i))) {
-        console.log("✅ Tomador detectado vía 'XXXX <nombre SRL/SA> RUTA'");
+    else if ((m = txt.match(/\d{4}\s+([A-ZÃÃ‰ÃÃ“ÃšÃœÃ‘][A-ZÃÃ‰ÃÃ“ÃšÃœÃ‘0-9 .,&\-\/]{2,60}?\s+(?:SRL|S\.?R\.?L\.?|SA|S\.?A\.?))\s+RUTA/i))) {
+        console.log("âœ… Tomador detectado vÃ­a 'XXXX <nombre SRL/SA> RUTA'");
         console.log("   Cadena capturada:", m[1]);
         out.tomador = norm(m[1]);
     }
-    // Último fallback genérico
+    // Ãšltimo fallback genÃ©rico
     else if ((m = txt.match(/([A-Z][A-Z0-9 .,&\-\/]{3,50}?)\s+RUTA\s+NAC/i))) {
-        console.log("✅ Tomador detectado vía '<nombre> RUTA NAC'");
+        console.log("âœ… Tomador detectado vÃ­a '<nombre> RUTA NAC'");
         console.log("   Cadena capturada:", m[1]);
         const candidate = norm(m[1]);
         if (!candidate.includes('CAJA') && !candidate.includes('SEGUROS') && !candidate.includes('hasta')) {
@@ -162,20 +161,20 @@ function extractFieldsFromText(txt, plateHint) {
         }
     }
 
-    // 🚗 Marca
-    if ((m = txt.match(/MARCA\s*[:\-]?\s*([A-ZÁÉÍÓÚÜÑ0-9 .,&\-\/]+?)(?=\s+(?:TIPO|AÑO|PATENTE)\b)/i)))
+    // ðŸš— Marca
+    if ((m = txt.match(/MARCA\s*[:\-]?\s*([A-ZÃÃ‰ÃÃ“ÃšÃœÃ‘0-9 .,&\-\/]+?)(?=\s+(?:TIPO|AÃ‘O|PATENTE)\b)/i)))
         out.marca = norm(m[1]);
 
-    // 🚙 Tipo
-    if ((m = txt.match(/TIPO\s*[:\-]?\s*([A-ZÁÉÍÓÚÜÑ0-9 .,&\-\/]+?)(?=\s+(?:AÑO|PATENTE)\b)/i)))
+    // ðŸš™ Tipo
+    if ((m = txt.match(/TIPO\s*[:\-]?\s*([A-Z0-9ÁÉÍÓÚÜÑÃ .,&\-\/]+?)(?=\s+(?:A\S*O\s+DE\s+FABRICACI\S*N|PATENTE)\b)/i)))
         out.tipo = norm(m[1]);
 
-    // 🏗 Año de fabricación
-    if ((m = txt.match(/AÑO\s*(?:DE\s*)?FABRICACI[ÓO]N\s*[:\-]?\s*(\d{4})/i)))
+    // ðŸ— AÃ±o de fabricaciÃ³n
+    if ((m = txt.match(/A\S*O\s*(?:DE\s*)?FABRICACI\S*N\s*[:\-]?\s*(\d{4})/i)))
         out.anio = m[1];
 
-    // 🔢 Poliza número
-    if ((m = txt.match(/(?:POLIZA|P[ÓO]LIZA)\s*(?:N[º°]|NUM|NUMERO|#|Nº)?\s*[:\-]?\s*([0-9\-]{7,})/i))) {
+    // ðŸ”¢ Poliza nÃºmero
+    if ((m = txt.match(/(?:POLIZA|P[Ã“O]LIZA)\s*(?:N[ÂºÂ°]|NUM|NUMERO|#|NÂº)?\s*[:\-]?\s*([0-9\-]{7,})/i))) {
         out.poliza_numero = norm(m[1]);
     } else if ((m = txt.match(/\b(\d{4,}-\d{6,}-\d{2,})\b/))) {
         out.poliza_numero = norm(m[1]);
@@ -184,7 +183,7 @@ function extractFieldsFromText(txt, plateHint) {
         out.poliza_numero_sin_guiones = out.poliza_numero.replace(/[\s\-]/g, "");
     }
 
-    // 📆 Vigencia
+    // ðŸ“† Vigencia
     if ((m = txt.match(/desde\s+(?:\d+\s*hs?\.\s*del\s+)?([0-3]?\d[\-\/][01]?\d[\-\/]\d{4})[\s\S]{0,100}?hasta\s+(?:\d+\s*hs?\.\s*del\s+)?([0-3]?\d[\-\/][01]?\d[\-\/]\d{4})/is))) {
         out.vigencia_desde = m[1].replace(/\//g, "-");
         out.vigencia_hasta = m[2].replace(/\//g, "-");
@@ -192,7 +191,7 @@ function extractFieldsFromText(txt, plateHint) {
         out.vigencia_hasta_iso = toISO(out.vigencia_hasta);
     }
 
-    // 🧩 Patente
+    // ðŸ§© Patente
     if ((m = txt.match(/PATENTE\s*[:\-]?\s*([A-Z0-9\-\s]{5,15}?)(?=\s+(?:MOTOR|CHASIS|USO)\b)/i))) {
         out.patente = normalizePlate(m[1]);
     } else {
@@ -208,22 +207,22 @@ function extractFieldsFromText(txt, plateHint) {
         }
     }
 
-    // ⚙️ Motor
+    // âš™ï¸ Motor
     if ((m = txt.match(/MOTOR\s*[:\-]?\s*([A-Z0-9\-]+)(?=\s+(?:CHASIS|USO|SUMA|$))/i)))
         out.motor = m[1].toUpperCase();
 
-    // 🧱 Chasis
+    // ðŸ§± Chasis
     if ((m = txt.match(/CHASIS\s*[:\-]?\s*([A-Z0-9\-]+)/i)))
         out.chasis = m[1].toUpperCase();
 
-    // 🎯 Modelo y nivel de equipamiento (para el nombre de carpeta)
+    // ðŸŽ¯ Modelo y nivel de equipamiento (para el nombre de carpeta)
     out.modelo_completo = extractModeloCompleto(txt, out.tipo, out.marca);
 
     return out;
 }
 
 // =====================
-// EXTRACCIÓN DE MODELO COMPLETO
+// EXTRACCIÃ“N DE MODELO COMPLETO
 // =====================
 function extractModeloCompleto(txt, tipo, marca) {
     if (!tipo) return null;
@@ -256,7 +255,7 @@ function extractModeloCompleto(txt, tipo, marca) {
         modeloCompleto += ` ${nivelEquipamiento}`;
     }
 
-    // Si hay marca, asegurar que esté incluida
+    // Si hay marca, asegurar que estÃ© incluida
     if (marca && !modeloCompleto.toUpperCase().includes(marca.toUpperCase())) {
         modeloCompleto = `${marca} ${modeloCompleto}`;
     }
@@ -275,9 +274,172 @@ function merge(a, b) {
     return out;
 }
 
+function printable(value) {
+    return norm(String(value ?? "")).replace(/[^\x20-\x7E\xA0-\xFF]/g, "");
+}
+
+function wrapCellText(text, font, size, maxWidth, maxLines = 2) {
+    const words = printable(text || "-").split(/\s+/).filter(Boolean);
+    const lines = [];
+    let current = "";
+
+    for (const word of words) {
+        const candidate = current ? `${current} ${word}` : word;
+        if (font.widthOfTextAtSize(candidate, size) <= maxWidth) {
+            current = candidate;
+            continue;
+        }
+
+        if (current) lines.push(current);
+        current = word;
+
+        while (font.widthOfTextAtSize(current, size) > maxWidth && current.length > 1) {
+            let cut = current.length - 1;
+            while (cut > 1 && font.widthOfTextAtSize(`${current.slice(0, cut)}...`, size) > maxWidth) cut--;
+            lines.push(`${current.slice(0, cut)}...`);
+            current = current.slice(cut);
+        }
+
+        if (lines.length >= maxLines) break;
+    }
+
+    if (current && lines.length < maxLines) lines.push(current);
+    if (!lines.length) lines.push("-");
+
+    if (lines.length > maxLines) return lines.slice(0, maxLines);
+    const last = lines[lines.length - 1];
+    if (font.widthOfTextAtSize(last, size) > maxWidth) {
+        let cut = last.length - 1;
+        while (cut > 1 && font.widthOfTextAtSize(`${last.slice(0, cut)}...`, size) > maxWidth) cut--;
+        lines[lines.length - 1] = `${last.slice(0, cut)}...`;
+    }
+    return lines;
+}
+
+async function createVehiclesSummaryPdf(results, outDir) {
+    const pdf = await PDFDocument.create();
+    const regular = await pdf.embedFont(StandardFonts.Helvetica);
+    const bold = await pdf.embedFont(StandardFonts.HelveticaBold);
+    const pageSize = [841.89, 595.28]; // A4 landscape
+    const margin = 40;
+    const rowHeight = 36;
+    const headerHeight = 24;
+    const columns = [
+        { label: "Marca", key: "marca", width: 95 },
+        { label: "Modelo", key: "tipo", width: 170 },
+        { label: "Patente", key: "patente", width: 80 },
+        { label: "Anio Fab.", key: "anio_fabricacion", width: 70 },
+        { label: "Chasis", key: "chasis", width: 180 },
+        { label: "Motor", key: "motor", width: 166 },
+    ];
+
+    let page;
+    let y;
+    let pageNumber = 0;
+
+    const drawPageHeader = () => {
+        page = pdf.addPage(pageSize);
+        pageNumber++;
+        const { width, height } = page.getSize();
+        y = height - margin;
+
+        page.drawText("Resumen general de vehiculos", {
+            x: margin,
+            y,
+            size: 16,
+            font: bold,
+            color: rgb(0.08, 0.08, 0.08),
+        });
+        page.drawText(`Total: ${results.length}`, {
+            x: width - margin - 90,
+            y: y + 2,
+            size: 10,
+            font: regular,
+            color: rgb(0.25, 0.25, 0.25),
+        });
+        y -= 28;
+
+        let x = margin;
+        page.drawRectangle({
+            x: margin,
+            y: y - headerHeight + 7,
+            width: width - margin * 2,
+            height: headerHeight,
+            color: rgb(0.88, 0.90, 0.93),
+        });
+        for (const column of columns) {
+            page.drawText(column.label, {
+                x: x + 4,
+                y: y - 8,
+                size: 9,
+                font: bold,
+                color: rgb(0.08, 0.08, 0.08),
+            });
+            x += column.width;
+        }
+        y -= headerHeight;
+
+        page.drawText(`Pagina ${pageNumber}`, {
+            x: width - margin - 55,
+            y: 20,
+            size: 8,
+            font: regular,
+            color: rgb(0.45, 0.45, 0.45),
+        });
+    };
+
+    drawPageHeader();
+
+    const rows = results
+        .map((result) => result.meta)
+        .sort((a, b) => printable(a.patente).localeCompare(printable(b.patente)));
+
+    for (const row of rows) {
+        if (y - rowHeight < margin) drawPageHeader();
+
+        let x = margin;
+        const rowTop = y;
+        page.drawLine({
+            start: { x: margin, y: rowTop + 6 },
+            end: { x: page.getWidth() - margin, y: rowTop + 6 },
+            thickness: 0.4,
+            color: rgb(0.82, 0.82, 0.82),
+        });
+
+        for (const column of columns) {
+            const lines = wrapCellText(row[column.key], regular, 8, column.width - 8, 2);
+            lines.forEach((line, index) => {
+                page.drawText(line, {
+                    x: x + 4,
+                    y: rowTop - 8 - index * 10,
+                    size: 8,
+                    font: regular,
+                    color: rgb(0.08, 0.08, 0.08),
+                });
+            });
+            x += column.width;
+        }
+        y -= rowHeight;
+    }
+
+    await fsExtra.ensureDir(outDir);
+    const bytes = await pdf.save();
+    const outPath = path.join(outDir, "resumen_vehiculos.pdf");
+    try {
+        await fsExtra.writeFile(outPath, bytes);
+        return outPath;
+    } catch (error) {
+        if (error.code !== "EBUSY" && error.code !== "EPERM") throw error;
+        const stamp = new Date().toISOString().replace(/[-:T]/g, "").slice(0, 14);
+        const fallbackPath = path.join(outDir, `resumen_vehiculos_${stamp}.pdf`);
+        await fsExtra.writeFile(fallbackPath, bytes);
+        return fallbackPath;
+    }
+}
+
 async function slicePagesToPdf(bufferOrUint8, startIdx, endIdx, outPath) {
     try {
-        // Asegurar que tenemos un Uint8Array válido
+        // Asegurar que tenemos un Uint8Array vÃ¡lido
         let srcBytes;
         if (bufferOrUint8 instanceof Uint8Array) {
             srcBytes = bufferOrUint8;
@@ -287,26 +449,26 @@ async function slicePagesToPdf(bufferOrUint8, startIdx, endIdx, outPath) {
             throw new Error("Input debe ser Buffer o Uint8Array");
         }
 
-        // Verificar que el PDF tiene header válido
+        // Verificar que el PDF tiene header vÃ¡lido
         const headerStr = String.fromCharCode(...srcBytes.slice(0, 5));
         if (!headerStr.startsWith('%PDF')) {
-            console.error("❌ Datos no son un PDF válido. Header:", headerStr);
-            throw new Error("El buffer no contiene un PDF válido");
+            console.error("âŒ Datos no son un PDF vÃ¡lido. Header:", headerStr);
+            throw new Error("El buffer no contiene un PDF vÃ¡lido");
         }
 
-        console.log(`📄 Cargando PDF (${srcBytes.length} bytes)...`);
+        console.log(`ðŸ“„ Cargando PDF (${srcBytes.length} bytes)...`);
         const src = await PDFDocument.load(srcBytes, { ignoreEncryption: true });
 
         const totalPages = src.getPageCount();
-        console.log(`📑 PDF tiene ${totalPages} páginas`);
+        console.log(`ðŸ“‘ PDF tiene ${totalPages} pÃ¡ginas`);
 
         const out = await PDFDocument.create();
 
-        // Validar índices
+        // Validar Ã­ndices
         startIdx = Math.max(0, startIdx);
         endIdx = Math.min(endIdx, totalPages - 1);
 
-        console.log(`✂️ Extrayendo páginas ${startIdx + 1} a ${endIdx + 1}...`);
+        console.log(`âœ‚ï¸ Extrayendo pÃ¡ginas ${startIdx + 1} a ${endIdx + 1}...`);
 
         const idxs = Array.from({ length: endIdx - startIdx + 1 }, (_, i) => startIdx + i);
         const pages = await out.copyPages(src, idxs);
@@ -319,11 +481,11 @@ async function slicePagesToPdf(bufferOrUint8, startIdx, endIdx, outPath) {
         const bytes = await out.save();
         await fsExtra.writeFile(outPath, bytes);
 
-        console.log(`✅ PDF guardado: ${outPath}`);
+        console.log(`âœ… PDF guardado: ${outPath}`);
     } catch (error) {
-        console.error(`❌ Error al procesar PDF:`, error.message);
+        console.error(`âŒ Error al procesar PDF:`, error.message);
         console.error(`   Archivo destino: ${outPath}`);
-        console.error(`   Páginas: ${startIdx}-${endIdx}`);
+        console.error(`   PÃ¡ginas: ${startIdx}-${endIdx}`);
         throw error;
     }
 }
@@ -332,7 +494,7 @@ async function slicePagesToPdf(bufferOrUint8, startIdx, endIdx, outPath) {
 // =====================
 async function processAll(bufferOrUint8, pagesText, plateFilter) {
     const blocks = findCertificateBlocks(pagesText);
-    if (!blocks.length) console.warn("⚠️ No se encontraron certificados de cobertura en el PDF.");
+    if (!blocks.length) console.warn("âš ï¸ No se encontraron certificados de cobertura en el PDF.");
     const results = [];
 
     for (const blk of blocks) {
@@ -352,7 +514,7 @@ async function processAll(bufferOrUint8, pagesText, plateFilter) {
             if (!data.patente) data.patente = normalizePlate(plateFilter);
         }
 
-        console.log("Datos extraídos:", data);
+        console.log("Datos extraÃ­dos:", data);
         const tomadorSafe = sanitize(data.tomador || "Tomador_Desconocido");
         const patente = (data.patente || "PATENTE_DESC").toUpperCase();
 
@@ -371,6 +533,7 @@ async function processAll(bufferOrUint8, pagesText, plateFilter) {
             tomador: data.tomador || null,
             marca: data.marca || null,
             tipo: data.tipo || null,
+            modelo_completo: data.modelo_completo || null,
             anio_fabricacion: data.anio || null,
             patente,
             vigencia_desde: data.vigencia_desde || null,
@@ -382,7 +545,7 @@ async function processAll(bufferOrUint8, pagesText, plateFilter) {
             motor: data.motor || null,
             chasis: data.chasis || null,
             archivo_pdf: pdfOut,
-            paginas: `${blk.end - blk.start + 1} páginas`,
+            paginas: `${blk.end - blk.start + 1} pÃ¡ginas`,
             rango_paginas_1based: `${blk.start + 1}-${blk.end + 1}`,
         };
         await fsExtra.writeJSON(jsonOut, payload, { spaces: 2 });
@@ -397,29 +560,29 @@ async function processAll(bufferOrUint8, pagesText, plateFilter) {
 // PROCESAR ARCHIVO INDIVIDUAL
 // =====================
 async function processSinglePdf(pdfPath, plateFilter, outDir) {
-    console.log(`\n📄 Procesando: ${path.basename(pdfPath)}`);
+    console.log(`\nðŸ“„ Procesando: ${path.basename(pdfPath)}`);
 
     const buffer = await fsExtra.readFile(pdfPath);
-    console.log(`✅ Archivo leído: ${buffer.length} bytes`);
+    console.log(`âœ… Archivo leÃ­do: ${buffer.length} bytes`);
 
-    // Verificar que es un PDF válido
+    // Verificar que es un PDF vÃ¡lido
     const headerCheck = buffer.toString('utf-8', 0, 5);
     if (!headerCheck.startsWith('%PDF')) {
-        console.error("❌ El archivo no parece ser un PDF válido");
+        console.error("âŒ El archivo no parece ser un PDF vÃ¡lido");
         console.error("   Header encontrado:", headerCheck);
         return [];
     }
-    console.log(`✅ Header PDF válido: ${headerCheck}`);
+    console.log(`âœ… Header PDF vÃ¡lido: ${headerCheck}`);
 
     // Crear copias independientes para evitar detached buffer
     const dataBytesForPdfjs = new Uint8Array(buffer);
     const dataBytesForPdflib = new Uint8Array(buffer);
 
-    console.log(`🔄 Extrayendo texto con pdfjs...`);
+    console.log(`ðŸ”„ Extrayendo texto con pdfjs...`);
     const pagesText = await getAllPagesText(dataBytesForPdfjs);
-    console.log(`✅ ${pagesText.length} páginas procesadas`);
+    console.log(`âœ… ${pagesText.length} pÃ¡ginas procesadas`);
 
-    console.log(`🔍 Procesando certificados...`);
+    console.log(`ðŸ” Procesando certificados...`);
     const results = await processAll(dataBytesForPdflib, pagesText, plateFilter);
 
     return results;
@@ -432,23 +595,23 @@ async function processSinglePdf(pdfPath, plateFilter, outDir) {
     try {
         // Verificar si la entrada existe
         if (!(await fsExtra.pathExists(INPUT))) {
-            console.error("❌ No existe la ruta:", INPUT);
+            console.error("âŒ No existe la ruta:", INPUT);
             process.exit(1);
         }
 
         // Buscar todos los archivos PDF
         const pdfFiles = await findPdfFiles(INPUT);
         if (pdfFiles.length === 0) {
-            console.error("❌ No se encontraron archivos PDF en la ruta especificada");
+            console.error("âŒ No se encontraron archivos PDF en la ruta especificada");
             process.exit(1);
         }
 
-        console.log(`📂 Encontrados ${pdfFiles.length} archivo(s) PDF para procesar`);
+        console.log(`ðŸ“‚ Encontrados ${pdfFiles.length} archivo(s) PDF para procesar`);
 
         let plateFilter = plateArg ? normalizePlate(plateArg) : null;
         if (!plateFilter && pdfFiles.length === 1) {
             const rl = readline.createInterface({ input, output });
-            const answer = await rl.question("Ingresá una patente (ENTER para procesar todas): ");
+            const answer = await rl.question("IngresÃ¡ una patente (ENTER para procesar todas): ");
             rl.close();
             plateFilter = norm(answer) ? normalizePlate(answer) : null;
         }
@@ -461,29 +624,31 @@ async function processSinglePdf(pdfPath, plateFilter, outDir) {
                 const results = await processSinglePdf(pdfFile, plateFilter, OUT_DIR);
                 totalResults.push(...results);
             } catch (error) {
-                console.error(`❌ Error procesando ${path.basename(pdfFile)}:`, error.message);
+                console.error(`âŒ Error procesando ${path.basename(pdfFile)}:`, error.message);
                 continue;
             }
         }
 
         if (totalResults.length === 0) {
             console.log(plateFilter
-                ? `⚠️ No se encontró certificado de cobertura para la patente ${plateFilter}.`
-                : "⚠️ No se detectaron certificados de cobertura en los PDFs.");
+                ? `âš ï¸ No se encontrÃ³ certificado de cobertura para la patente ${plateFilter}.`
+                : "âš ï¸ No se detectaron certificados de cobertura en los PDFs.");
             process.exit(0);
         }
 
-        console.log("\n✅ Procesamiento finalizado:");
+        console.log("\nâœ… Procesamiento finalizado:");
         for (const r of totalResults) {
-            console.log("—", r.meta.patente, "→", r.pdf);
+            console.log("â€”", r.meta.patente, "â†’", r.pdf);
         }
-        console.log(`📊 Total certificados exportados: ${totalResults.length} de ${pdfFiles.length} archivo(s) procesado(s)`);
+        const summaryPdf = await createVehiclesSummaryPdf(totalResults, OUT_DIR);
+        console.log("PDF general:", summaryPdf);
+        console.log(`ðŸ“Š Total certificados exportados: ${totalResults.length} de ${pdfFiles.length} archivo(s) procesado(s)`);
 
     } catch (error) {
-        console.error("❌ Error fatal:", error);
+        console.error("âŒ Error fatal:", error);
         process.exit(1);
     }
 })().catch(err => {
-    console.error("❌ Error fatal:", err);
+    console.error("âŒ Error fatal:", err);
     process.exit(1);
 });

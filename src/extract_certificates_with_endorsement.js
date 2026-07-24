@@ -1,6 +1,7 @@
 // Extractor de certificados "SEGURO DE AUTOMOTORES / CERTIFICADO DE COBERTURA"
 // Versión v3 (2025-10) — con extracción precisa y estructura de carpetas extendida
-// Uso: node src/extract_certificates_v3.js <archivo.pdf> [--out ./salidas] [--plate=AG552FA]
+// Uso: node src/extract_certificates_with_endorsement.js <archivo.pdf> [--out ./salidas] [--plate=AG552FA]
+// Adjunta todas las páginas de ./endoso.pdf al final de cada póliza individual.
 
 import path from "node:path";
 import readline from "node:readline/promises";
@@ -20,6 +21,7 @@ const INPUT = args[0];
 const outFlagIdx = args.indexOf("--out");
 const OUT_DIR = outFlagIdx !== -1 ? args[outFlagIdx + 1] : "./salidas";
 const plateArg = (args.find(a => a.startsWith("--plate=")) || "").split("=")[1] || null;
+const ENDORSEMENT_PATH = path.resolve("endoso.pdf");
 
 const HDR1 = "SEGURO DE AUTOMOTORES";
 const HDR2 = "CERTIFICADO DE COBERTURA";
@@ -275,7 +277,7 @@ function merge(a, b) {
     return out;
 }
 
-async function slicePagesToPdf(bufferOrUint8, startIdx, endIdx, outPath) {
+async function slicePagesToPdf(bufferOrUint8, endorsementPdf, startIdx, endIdx, outPath) {
     try {
         // Asegurar que tenemos un Uint8Array válido
         let srcBytes;
@@ -315,6 +317,13 @@ async function slicePagesToPdf(bufferOrUint8, startIdx, endIdx, outPath) {
             out.addPage(p);
         }
 
+        const endorsementPageIndices = endorsementPdf.getPageIndices();
+        const endorsementPages = await out.copyPages(endorsementPdf, endorsementPageIndices);
+        for (const page of endorsementPages) {
+            out.addPage(page);
+        }
+        console.log(`📎 Endoso adjuntado: ${endorsementPages.length} página(s)`);
+
         await fsExtra.ensureDir(path.dirname(outPath));
         const bytes = await out.save();
         await fsExtra.writeFile(outPath, bytes);
@@ -330,7 +339,7 @@ async function slicePagesToPdf(bufferOrUint8, startIdx, endIdx, outPath) {
 // =====================
 // PROCESAR TODO
 // =====================
-async function processAll(bufferOrUint8, pagesText, plateFilter) {
+async function processAll(bufferOrUint8, pagesText, plateFilter, endorsementPdf) {
     const blocks = findCertificateBlocks(pagesText);
     if (!blocks.length) console.warn("⚠️ No se encontraron certificados de cobertura en el PDF.");
     const results = [];
@@ -365,8 +374,10 @@ async function processAll(bufferOrUint8, pagesText, plateFilter) {
         const jsonOut = path.join(targetDir, `poliza_${patente}.json`);
 
         await fsExtra.ensureDir(targetDir);
-        await slicePagesToPdf(bufferOrUint8, blk.start, blk.end, pdfOut);
+        await slicePagesToPdf(bufferOrUint8, endorsementPdf, blk.start, blk.end, pdfOut);
 
+        const certificatePageCount = blk.end - blk.start + 1;
+        const endorsementPageCount = endorsementPdf.getPageCount();
         const payload = {
             tomador: data.tomador || null,
             marca: data.marca || null,
@@ -382,7 +393,10 @@ async function processAll(bufferOrUint8, pagesText, plateFilter) {
             motor: data.motor || null,
             chasis: data.chasis || null,
             archivo_pdf: pdfOut,
-            paginas: `${blk.end - blk.start + 1} páginas`,
+            paginas: `${certificatePageCount + endorsementPageCount} páginas`,
+            paginas_certificado: certificatePageCount,
+            paginas_endoso: endorsementPageCount,
+            archivo_endoso: ENDORSEMENT_PATH,
             rango_paginas_1based: `${blk.start + 1}-${blk.end + 1}`,
         };
         await fsExtra.writeJSON(jsonOut, payload, { spaces: 2 });
@@ -396,7 +410,7 @@ async function processAll(bufferOrUint8, pagesText, plateFilter) {
 // =====================
 // PROCESAR ARCHIVO INDIVIDUAL
 // =====================
-async function processSinglePdf(pdfPath, plateFilter, outDir) {
+async function processSinglePdf(pdfPath, plateFilter, outDir, endorsementPdf) {
     console.log(`\n📄 Procesando: ${path.basename(pdfPath)}`);
 
     const buffer = await fsExtra.readFile(pdfPath);
@@ -420,7 +434,7 @@ async function processSinglePdf(pdfPath, plateFilter, outDir) {
     console.log(`✅ ${pagesText.length} páginas procesadas`);
 
     console.log(`🔍 Procesando certificados...`);
-    const results = await processAll(dataBytesForPdflib, pagesText, plateFilter);
+    const results = await processAll(dataBytesForPdflib, pagesText, plateFilter, endorsementPdf);
 
     return results;
 }
@@ -435,6 +449,21 @@ async function processSinglePdf(pdfPath, plateFilter, outDir) {
             console.error("❌ No existe la ruta:", INPUT);
             process.exit(1);
         }
+
+        if (!(await fsExtra.pathExists(ENDORSEMENT_PATH))) {
+            console.error("❌ No existe el archivo de endoso:", ENDORSEMENT_PATH);
+            process.exit(1);
+        }
+        const endorsementBytes = await fsExtra.readFile(ENDORSEMENT_PATH);
+        const endorsementHeader = endorsementBytes.toString("utf-8", 0, 5);
+        if (!endorsementHeader.startsWith("%PDF")) {
+            console.error("❌ El archivo endoso.pdf no es un PDF válido");
+            process.exit(1);
+        }
+        const endorsementPdf = await PDFDocument.load(new Uint8Array(endorsementBytes), {
+            ignoreEncryption: true,
+        });
+        console.log(`📎 Endoso cargado: ${ENDORSEMENT_PATH} (${endorsementPdf.getPageCount()} página(s))`);
 
         // Buscar todos los archivos PDF
         const pdfFiles = await findPdfFiles(INPUT);
@@ -458,7 +487,7 @@ async function processSinglePdf(pdfPath, plateFilter, outDir) {
         // Procesar cada archivo PDF
         for (const pdfFile of pdfFiles) {
             try {
-                const results = await processSinglePdf(pdfFile, plateFilter, OUT_DIR);
+                const results = await processSinglePdf(pdfFile, plateFilter, OUT_DIR, endorsementPdf);
                 totalResults.push(...results);
             } catch (error) {
                 console.error(`❌ Error procesando ${path.basename(pdfFile)}:`, error.message);

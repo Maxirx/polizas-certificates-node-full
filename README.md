@@ -1,7 +1,7 @@
 # 📄🚗 Extractor de Certificados de Cobertura de Automotores
 
 
-Herramienta automatizada para extraer certificados individuales de pólizas de seguro vehicular desde archivos PDF consolidados, organizándolos en una estructura jerárquica de carpetas con metadata en JSON.
+Herramienta automatizada para extraer certificados individuales de pólizas de seguro vehicular desde archivos PDF consolidados o carpetas de PDFs, organizándolos en una estructura jerárquica `tomador/patente+modelo` con metadata en JSON.
 
 ![Node.js](https://img.shields.io/badge/node-%3E%3D16.x-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-blue)
@@ -61,7 +61,7 @@ node src/extract_certificates_v3.js --help
 
 ### Sintaxis básica:
 ```bash
-node src/extract_certificates_v3.js <archivo.pdf> [opciones]
+node src/extract_certificates_v3.js <archivo.pdf|carpeta> [opciones]
 ```
 
 ### Opciones disponibles:
@@ -70,17 +70,22 @@ node src/extract_certificates_v3.js <archivo.pdf> [opciones]
 
 ### Ejemplos:
 
-**1. Procesar todas las pólizas del PDF:**
+**1. Procesar un archivo PDF individual:**
 ```bash
 node src/extract_certificates_v3.js ./polizas_completas.pdf
 ```
 
-**2. Especificar carpeta de salida:**
+**2. Procesar todos los PDFs de una carpeta:**
+```bash
+node src/extract_certificates_v3.js ./carpeta_de_pdfs
+```
+
+**3. Especificar carpeta de salida:**
 ```bash
 node src/extract_certificates_v3.js ./polizas.pdf --out ./certificados_2025
 ```
 
-**3. Extraer solo una patente específica:**
+**4. Extraer solo una patente específica:**
 ```bash
 node src/extract_certificates_v3.js ./polizas.pdf --plate=ABC000LK
 ```
@@ -89,12 +94,13 @@ node src/extract_certificates_v3.js ./polizas.pdf --plate=ABC000LK
 
 ## 🖱️ Uso Interactivo
 
-Si no especificás la opción `--plate`, el script preguntará interactivamente:
+Si no especificás la opción `--plate` y estás procesando un solo archivo, el script preguntará interactivamente:
 
 ```bash
 $ node src/extract_certificates_v3.js ./polizas.pdf
 
-📂 Leyendo: ./polizas.pdf
+📂 Encontrados 1 archivo(s) PDF para procesar
+📄 Procesando: polizas.pdf
 ✅ Archivo leído: 2443945 bytes
 ✅ Header PDF válido: %PDF-
 🔄 Extrayendo texto con pdfjs...
@@ -103,29 +109,27 @@ $ node src/extract_certificates_v3.js ./polizas.pdf
 Ingresá una patente (ENTER para procesar todas): ABC000LK
 
 🔍 Procesando certificados...
-Datos extraídos: { tomador: 'KOMPAS SRL', patente: 'ABC000LK', ... }
+Datos extraídos: { tomador: 'KOMPAS SRL', patente: 'ABC000LK', modelo: 'HILUX SR', ... }
 📄 Cargando PDF (2443945 bytes)...
 📑 PDF tiene 238 páginas, extrayendo 141-144
-✅ PDF guardado: salidas/EMPRESA_SRL/.../poliza_ABC000LK.pdf
+✅ PDF guardado: salidas/KOMPAS_SRL/ABC000LK+HILUX_SR/poliza_ABC000LK.pdf
 
 ✅ Procesamiento finalizado:
-— ABC000LK → salidas/EMPRESA_SRL/TOYOTA/.../poliza_ABC000LK.pdf
-Total certificados exportados: 1
+— ABC000LK → salidas/KOMPAS_SRL/ABC000LK+HILUX_SR/poliza_ABC000LK.pdf
+📊 Total certificados exportados: 1 de 1 archivo(s) procesado(s)
 ```
 
 ---
 
 ## 📦 Salida Esperada
 
-### Estructura de carpetas generada:
+### Estructura de carpetas generada (nuevo formato):
 ```
 salidas/
 └── EMPRESA_SRL/
-    └── TOYOTA/
-        └── HILUX_L-16_2.8_TDI_CD_4_X4_SR_2019/
-            └── ABC000LK/
-                ├── poliza_ABC000LK.pdf    (certificado extraído)
-                └── poliza_ABC000LK.json   (metadata estructurada)
+    └── ABC000LK+HILUX_SR/           # tomador/patente+modelo+nivel_equipamiento
+        ├── poliza_ABC000LK.pdf      (certificado extraído)
+        └── poliza_ABC000LK.json     (metadata estructurada)
 ```
 
 ### Ejemplo de archivo JSON generado:
@@ -134,6 +138,7 @@ salidas/
   "tomador": "EMPRESA SRL",
   "marca": "TOYOTA",
   "tipo": "HILUX L/16 2.8 TDI CD 4 X4 SR",
+  "modelo_completo": "HILUX SR",
   "anio_fabricacion": "2019",
   "patente": "ABC000LK",
   "vigencia_desde": "31-08-2025",
@@ -144,7 +149,7 @@ salidas/
   "poliza_numero_sin_guiones": "5160027337603",
   "motor": "1GD-46570SA",
   "chasis": "8AHLA8CD6K9187182",
-  "archivo_pdf": "salidas/.../poliza_ABC000LK.pdf",
+  "archivo_pdf": "salidas/EMPRESA_SRL/ABC000LK+HILUX_SR/poliza_ABC000LK.pdf",
   "paginas": "4 páginas",
   "rango_paginas_1based": "141-144"
 }
@@ -160,7 +165,8 @@ salidas/
 - Si no encuentra el patrón, asume bloques contiguos
 
 ### Extracción de datos:
-- Usa **regex robustos** con preprocesamiento de texto (inserta saltos de línea antes de etiquetas clave)
+- **Modelo y nivel de equipamiento**: Detecta automáticamente el modelo del vehículo y su nivel de equipamiento (SR, CD, XLS, etc.) para crear el nombre de carpeta
+- **Regex robustos** con preprocesamiento de texto (inserta saltos de línea antes de etiquetas clave)
 - **Normalización de patentes**: Soporta formatos con espacios/guiones (`AB 123 CD` → `AB123CD`)
 - **Fallbacks inteligentes**: Si falta información, intenta extraer solo de la primera página del bloque
 - **Conversión de fechas**: De formato DD-MM-YYYY a ISO 8601 (YYYY-MM-DD)
