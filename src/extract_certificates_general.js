@@ -517,14 +517,15 @@ async function processAll(bufferOrUint8, pagesText, plateFilter) {
         console.log("Datos extraÃ­dos:", data);
         const tomadorSafe = sanitize(data.tomador || "Tomador_Desconocido");
         const patente = (data.patente || "PATENTE_DESC").toUpperCase();
+        const vencimientoHastaISO = data.vigencia_hasta_iso || toISO(data.vigencia_hasta || "");
 
         // Construir nombre del modelo: patente + modelo completo
         const modeloParaCarpeta = data.modelo_completo ? sanitize(data.modelo_completo) : sanitize(`${data.marca || "Marca"} ${data.tipo || "Tipo"}`);
         const nombreCarpeta = `${patente}_${modeloParaCarpeta}`;
 
         const targetDir = path.join(OUT_DIR, tomadorSafe, nombreCarpeta);
-        const pdfOut = path.join(targetDir, `poliza_${patente}.pdf`);
-        const jsonOut = path.join(targetDir, `poliza_${patente}.json`);
+        const pdfOut = path.join(targetDir, `POL_${patente}_V${vencimientoHastaISO}.pdf`);
+        const jsonOut = path.join(targetDir, `POL_${patente}_V${vencimientoHastaISO}.json`);
 
         await fsExtra.ensureDir(targetDir);
         await slicePagesToPdf(bufferOrUint8, blk.start, blk.end, pdfOut);

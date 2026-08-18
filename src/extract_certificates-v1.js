@@ -207,9 +207,10 @@ async function processAll(bufferOrUint8, pagesText, plateFilter /* string | null
     const tipoAnioSafe = sanitize(`${data.tipo || "Tipo"} ${data.anio || "Año"}`);
     console.log(`Procesando certificado: ${data.tipo || "Tipo"} ${data.anio || "Año"} (${data.patente || "PATENTE_DESC"})`);
     const patente = (data.patente || "PATENTE_DESC").toUpperCase();
+    const vencimientoHastaISO = data.vigencia_hasta_iso || toISO(data.vigencia_hasta || "");
     const targetDir = path.join(OUT_DIR, tomadorSafe, marcaSafe, tipoAnioSafe, patente);
-    const pdfOut = path.join(targetDir, `poliza_${patente}.pdf`);
-    const jsonOut = path.join(targetDir, `poliza_${patente}.json`);
+    const pdfOut = path.join(targetDir, `POL_${patente}_V${vencimientoHastaISO}.pdf`);
+    const jsonOut = path.join(targetDir, `POL_${patente}_V${vencimientoHastaISO}.json`);
 
 
 
